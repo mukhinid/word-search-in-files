@@ -14,24 +14,24 @@ type Searcher struct {
 func (s *Searcher) Search(word string) (files []string, err error) {
 	files, err = dir.FilesFS(s.FS, ".")
 
-	result := make([]string, 0, len(files))
-
 	if err != nil {
 		return
 	}
 
-	for _, file := range files {
-		content, err := fs.ReadFile(s.FS, file)
+	result := make([]string, 0, len(files))
 
-		if err != nil {
-			continue
+	for _, file := range files {
+		content, e := fs.ReadFile(s.FS, file)
+
+		if e != nil {
+			return nil, e
 		}
 
 		words := strings.Fields(string(content))
 
 		for _, w := range words {
 			if w == word {
-				result = append(result, fileNameWithoutExtension(file))
+				result = append(result, getFileNameWithoutExtension(file))
 				break
 			}
 		}
@@ -40,6 +40,6 @@ func (s *Searcher) Search(word string) (files []string, err error) {
 	return result, err
 }
 
-func fileNameWithoutExtension(fileName string) string {
+func getFileNameWithoutExtension(fileName string) string {
 	return strings.TrimSuffix(fileName, filepath.Ext(fileName))
 }
