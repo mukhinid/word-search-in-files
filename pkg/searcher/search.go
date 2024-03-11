@@ -11,33 +11,45 @@ type Searcher struct {
 	FS fs.FS
 }
 
-func (s *Searcher) Search(word string) (files []string, err error) {
-	files, err = dir.FilesFS(s.FS, ".")
+func (s *Searcher) Search(word string) ([]string, error) {
+	files, err := dir.FilesFS(s.FS, ".")
 
 	if err != nil {
-		return
+		return files, err
 	}
 
 	result := make([]string, 0, len(files))
 
 	for _, file := range files {
-		content, e := fs.ReadFile(s.FS, file)
+		isFound, e := searchInFile(s.FS, file, word)
 
 		if e != nil {
 			return nil, e
 		}
 
-		words := strings.Fields(string(content))
-
-		for _, w := range words {
-			if w == word {
-				result = append(result, getFileNameWithoutExtension(file))
-				break
-			}
+		if isFound {
+			result = append(result, getFileNameWithoutExtension(file))
 		}
 	}
 
 	return result, err
+}
+
+func searchInFile(filesystem fs.FS, filename string, word string) (bool, error) {
+	content, err := fs.ReadFile(filesystem, filename)
+
+	if err != nil {
+		return false, err
+	}
+
+	words := strings.Fields(string(content))
+
+	for _, w := range words {
+		if w == word {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func getFileNameWithoutExtension(fileName string) string {
