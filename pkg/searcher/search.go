@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"path/filepath"
 	"strings"
+	"sync"
 	"word-search-in-files/pkg/internal/dir"
 )
 
@@ -20,36 +21,45 @@ func (s *Searcher) Search(word string) ([]string, error) {
 
 	result := make([]string, 0, len(files))
 
+	var wg sync.WaitGroup
+	ch := make(chan string)
+
 	for _, file := range files {
-		isFound, e := searchInFile(s.FS, file, word)
+		wg.Add(1)
 
-		if e != nil {
-			return nil, e
-		}
+		go func(file string) {
+			searchInFile(s.FS, file, word, ch)
+			wg.Done()
+		}(file)
+	}
 
-		if isFound {
-			result = append(result, getFileNameWithoutExtension(file))
-		}
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	for file := range ch {
+		result = append(result, getFileNameWithoutExtension(file))
 	}
 
 	return result, err
 }
 
-func searchInFile(filesystem fs.FS, filename string, word string) (bool, error) {
+func searchInFile(filesystem fs.FS, filename string, word string, ch chan string) {
 	content, err := fs.ReadFile(filesystem, filename)
 
 	if err != nil {
-		return false, err
+		return
 	}
 
 	words := strings.Fields(string(content))
 
 	for _, w := range words {
 		if w == word {
-			return true, nil
+			ch <- filename
+			return
 		}
 	}
-	return false, nil
 }
 
 func getFileNameWithoutExtension(fileName string) string {
