@@ -8,10 +8,12 @@ import (
 	"word-search-in-files/pkg/internal/dir"
 )
 
+// Searcher позволяет искать ключевое слово в файлах указанной папки.
 type Searcher struct {
-	FS fs.FS
+	FS fs.FS // Файловая система, предоставляющая папку, в файлах которой осуществляется поиск.
 }
 
+// Производит поиск слова word по файлам в папке файловой системы.
 func (s *Searcher) Search(word string) ([]string, error) {
 	files, err := dir.FilesFS(s.FS, ".")
 
@@ -45,6 +47,7 @@ func (s *Searcher) Search(word string) ([]string, error) {
 	return result, err
 }
 
+// Производит поиск слова word по файлу filename в файловой системе filesystem. Если слово содержится в файле - отправляет filename в канал ch.
 func searchInFile(filesystem fs.FS, filename string, word string, ch chan string) {
 	content, err := fs.ReadFile(filesystem, filename)
 
@@ -62,6 +65,7 @@ func searchInFile(filesystem fs.FS, filename string, word string, ch chan string
 	}
 }
 
+// Возвращает имя файла filename без расширения.
 func getFileNameWithoutExtension(fileName string) string {
 	return strings.TrimSuffix(fileName, filepath.Ext(fileName))
 }
