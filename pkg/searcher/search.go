@@ -17,19 +17,19 @@ type Searcher struct {
 }
 
 // Создаёт экземпляр объекта поисковика и инициализирует словарь для поиска.
-func NewSearcher(f fs.FS) *Searcher {
+func NewSearcher(f fs.FS) (*Searcher, error) {
 	s := &Searcher{
 		FS: f,
 	}
-	s.init()
-	return s
+	err := s.init()
+	return s, err
 }
 
 // Производит поиск слова word по файлам в файловой системе.
 func (s *Searcher) Search(word string) ([]string, error) {
 	// Если wordFilesMap не создан, значит объект Searcher был создан неправильно
 	if s.wordFilesMap == nil {
-		return nil, errors.New("непроинциализирован словарь поиска, объект Searcher должен быть создан вызовом функции NewSearcher")
+		return nil, errors.New("ошибка при инициализации словаря")
 	}
 
 	files := s.wordFilesMap[word]
@@ -45,6 +45,7 @@ func (s *Searcher) init() error {
 	files, err := dir.FilesFS(s.FS, ".")
 
 	if err != nil {
+		s.wordFilesMap = nil
 		return err
 	}
 
@@ -63,6 +64,7 @@ func (s *Searcher) init() error {
 
 	// Вернём первую ошибку обработки. Если их не было - в цикл не зайдём.
 	for err = range ch {
+		s.wordFilesMap = nil
 		return err
 	}
 

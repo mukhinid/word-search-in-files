@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -20,7 +21,12 @@ func searchInFiles(c *gin.Context) {
 }
 
 func main() {
-	searchModule = searcher.NewSearcher(os.DirFS("examples"))
+	var err error
+	searchModule, err = searcher.NewSearcher(os.DirFS("examples"))
+
+	if err != nil {
+		fmt.Println("Произошла ошибка при старте приложения", err)
+	}
 
 	router := gin.Default()
 	// Предпочёл сделать word path-параметром, так как в моём понимании path-параметры обязательны, а queryString-параметры опциональны. Параметр word обязателен для работы поиска.
