@@ -14,8 +14,7 @@ type Searcher struct {
 }
 
 // Производит поиск слова word по файлам в папке файловой системы.
-// Если параметр ignoreCase равен true - поиск осуществляется без учёта регистра.
-func (s *Searcher) Search(word string, ignoreCase bool) ([]string, error) {
+func (s *Searcher) Search(word string) ([]string, error) {
 	files, err := dir.FilesFS(s.FS, ".")
 
 	if err != nil {
@@ -31,7 +30,7 @@ func (s *Searcher) Search(word string, ignoreCase bool) ([]string, error) {
 		wg.Add(1)
 
 		go func(file string) {
-			searchInFile(s.FS, file, word, ch, ignoreCase)
+			searchInFile(s.FS, file, word, ch)
 			wg.Done()
 		}(file)
 	}
@@ -48,10 +47,8 @@ func (s *Searcher) Search(word string, ignoreCase bool) ([]string, error) {
 	return result, err
 }
 
-// Производит поиск слова word по файлу filename в файловой системе filesystem.
-// Если слово содержится в файле - отправляет filename в канал ch.
-// Если параметр ignoreCase равен true - поиск осуществляется без учёта регистра.
-func searchInFile(filesystem fs.FS, filename string, word string, ch chan string, ignoreCase bool) {
+// Производит поиск слова word по файлу filename в файловой системе filesystem. Если слово содержится в файле - отправляет filename в канал ch.
+func searchInFile(filesystem fs.FS, filename string, word string, ch chan string) {
 	content, err := fs.ReadFile(filesystem, filename)
 
 	if err != nil {
@@ -61,16 +58,9 @@ func searchInFile(filesystem fs.FS, filename string, word string, ch chan string
 	words := strings.Fields(string(content))
 
 	for _, w := range words {
-		if ignoreCase {
-			if strings.EqualFold(w, word) {
-				ch <- filename
-				return
-			}
-		} else {
-			if w == word {
-				ch <- filename
-				return
-			}
+		if w == word {
+			ch <- filename
+			return
 		}
 	}
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"net/http"
 	"os"
-	"strconv"
 
 	"word-search-in-files/pkg/searcher"
 
@@ -13,20 +12,9 @@ import (
 var searchModule searcher.Searcher
 
 func searchInFiles(c *gin.Context) {
-	ignoreCase := false
-	var err error
-
 	word := c.Param("word")
-	ignoreCaseStr := c.Query("ignore_case")
 
-	if ignoreCaseStr != "" {
-		ignoreCase, err = strconv.ParseBool(ignoreCaseStr)
-		if err != nil {
-			ignoreCase = false
-		}
-	}
-
-	files, _ := searchModule.Search(word, ignoreCase)
+	files, _ := searchModule.Search(word)
 
 	c.IndentedJSON(http.StatusOK, files)
 }
