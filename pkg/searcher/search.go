@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"word-search-in-files/pkg/internal/dir"
 )
 
@@ -25,13 +26,15 @@ func (s *Searcher) Init() error {
 		return err
 	}
 
-	for _, file := range files {
-		fileErr := s.processFile(file)
+	wg := &sync.WaitGroup{}
+	mu := &sync.Mutex{}
 
-		if fileErr != nil {
-			return fileErr
-		}
+	wg.Add(len(files))
+	for _, file := range files {
+		go s.processFile(file, mu, wg)
 	}
+
+	wg.Wait()
 
 	return nil
 }
@@ -47,7 +50,9 @@ func (s *Searcher) Search(word string) ([]string, error) {
 	return files, nil
 }
 
-func (s *Searcher) processFile(filename string) error {
+func (s *Searcher) processFile(filename string, mu *sync.Mutex, wg *sync.WaitGroup) error {
+	defer wg.Done()
+
 	fileWihtoutExt := getFileNameWithoutExtension(filename)
 	content, err := fs.ReadFile(s.FS, filename)
 
@@ -57,14 +62,20 @@ func (s *Searcher) processFile(filename string) error {
 
 	words := strings.Fields(string(content))
 	for _, word := range words {
-		entry, wordContains := s.wordFilesMap[word]
+		mu.Lock()
+
+		filesList, wordContains := s.wordFilesMap[word]
 		if wordContains {
-			if !slices.Contains(entry, fileWihtoutExt) {
-				s.wordFilesMap[word] = append(entry, fileWihtoutExt)
+			if !slices.Contains(filesList, fileWihtoutExt) {
+				filesList = append(filesList, fileWihtoutExt)
+				slices.Sort(filesList)
+				s.wordFilesMap[word] = filesList
 			}
 		} else {
 			s.wordFilesMap[word] = []string{fileWihtoutExt}
 		}
+
+		mu.Unlock()
 	}
 
 	return nil
