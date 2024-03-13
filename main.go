@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var searchModule searcher.Searcher
+var searchModule *searcher.Searcher
 
 func searchInFiles(c *gin.Context) {
 	word := c.Param("word")
@@ -20,11 +20,11 @@ func searchInFiles(c *gin.Context) {
 }
 
 func main() {
-	searchModule = searcher.Searcher{
-		FS: os.DirFS("examples"),
-	}
+	searchModule = searcher.NewSearcher(os.DirFS("examples"))
 
 	router := gin.Default()
+	// Предпочёл сделать word path-параметром, так как в моём понимании path-параметры обязательны, а queryString-параметры опциональны. Параметр word обязателен для работы поиска.
+	// Правилом это не является, просто мои предпочтения в дизайне API.
 	router.GET("/files/search/:word", searchInFiles)
 
 	router.Run("localhost:8080")
