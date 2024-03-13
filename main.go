@@ -23,7 +23,6 @@ func main() {
 	searchModule = searcher.Searcher{
 		FS: os.DirFS("examples"),
 	}
-	searchModule.Init()
 
 	router := gin.Default()
 	router.GET("/files/search/:word", searchInFiles)

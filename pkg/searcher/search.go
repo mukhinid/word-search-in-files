@@ -1,7 +1,6 @@
 package searcher
 
 import (
-	"errors"
 	"io/fs"
 	"path/filepath"
 	"slices"
@@ -16,8 +15,22 @@ type Searcher struct {
 	wordFilesMap map[string][]string // Словарь соответствия слов и файлов.
 }
 
+// Производит поиск слова word по файлам в папке файловой системы.
+func (s *Searcher) Search(word string) ([]string, error) {
+	if s.wordFilesMap == nil {
+		err := s.init()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	files := s.wordFilesMap[word]
+
+	return files, nil
+}
+
 // Инициализирует словарь для поиска.
-func (s *Searcher) Init() error {
+func (s *Searcher) init() error {
 	s.wordFilesMap = make(map[string][]string)
 
 	files, err := dir.FilesFS(s.FS, ".")
@@ -26,38 +39,34 @@ func (s *Searcher) Init() error {
 		return err
 	}
 
+	ch := make(chan error)
 	wg := &sync.WaitGroup{}
 	mu := &sync.Mutex{}
 
 	wg.Add(len(files))
 	for _, file := range files {
-		go s.processFile(file, mu, wg)
+		go s.processFile(file, mu, wg, ch)
 	}
 
 	wg.Wait()
+	close(ch)
+
+	for err = range ch {
+		return err
+	}
 
 	return nil
 }
 
-// Производит поиск слова word по файлам в папке файловой системы.
-func (s *Searcher) Search(word string) ([]string, error) {
-	if s.wordFilesMap == nil {
-		return nil, errors.New("непроинциализирован словарь поиска, вызовите функцию Searcher.Init(), прежде чем искать")
-	}
-
-	files := s.wordFilesMap[word]
-
-	return files, nil
-}
-
-func (s *Searcher) processFile(filename string, mu *sync.Mutex, wg *sync.WaitGroup) error {
+func (s *Searcher) processFile(filename string, mu *sync.Mutex, wg *sync.WaitGroup, ch chan error) {
 	defer wg.Done()
 
 	fileWihtoutExt := getFileNameWithoutExtension(filename)
 	content, err := fs.ReadFile(s.FS, filename)
 
 	if err != nil {
-		return err
+		ch <- err
+		return
 	}
 
 	words := strings.Fields(string(content))
@@ -77,8 +86,6 @@ func (s *Searcher) processFile(filename string, mu *sync.Mutex, wg *sync.WaitGro
 
 		mu.Unlock()
 	}
-
-	return nil
 }
 
 // Возвращает имя файла filename без расширения.

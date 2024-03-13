@@ -69,7 +69,6 @@ func TestSearcher_Search(t *testing.T) {
 			s := &Searcher{
 				FS: tt.fields.FS,
 			}
-			s.Init()
 			gotFiles, err := s.Search(tt.args.word)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Search() error = %v, wantErr %v", err, tt.wantErr)
