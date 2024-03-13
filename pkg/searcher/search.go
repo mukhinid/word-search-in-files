@@ -26,23 +26,10 @@ func (s *Searcher) Init() error {
 	}
 
 	for _, file := range files {
-		fileWihtoutExt := getFileNameWithoutExtension(file)
-		content, fileErr := fs.ReadFile(s.FS, file)
+		fileErr := s.processFile(file)
 
 		if fileErr != nil {
-			continue
-		}
-
-		words := strings.Fields(string(content))
-		for _, word := range words {
-			entry, wordContains := s.wordFilesMap[word]
-			if wordContains {
-				if !slices.Contains(entry, fileWihtoutExt) {
-					s.wordFilesMap[word] = append(entry, fileWihtoutExt)
-				}
-			} else {
-				s.wordFilesMap[word] = []string{fileWihtoutExt}
-			}
+			return fileErr
 		}
 	}
 
@@ -58,6 +45,29 @@ func (s *Searcher) Search(word string) ([]string, error) {
 	files := s.wordFilesMap[word]
 
 	return files, nil
+}
+
+func (s *Searcher) processFile(filename string) error {
+	fileWihtoutExt := getFileNameWithoutExtension(filename)
+	content, err := fs.ReadFile(s.FS, filename)
+
+	if err != nil {
+		return err
+	}
+
+	words := strings.Fields(string(content))
+	for _, word := range words {
+		entry, wordContains := s.wordFilesMap[word]
+		if wordContains {
+			if !slices.Contains(entry, fileWihtoutExt) {
+				s.wordFilesMap[word] = append(entry, fileWihtoutExt)
+			}
+		} else {
+			s.wordFilesMap[word] = []string{fileWihtoutExt}
+		}
+	}
+
+	return nil
 }
 
 // Возвращает имя файла filename без расширения.
